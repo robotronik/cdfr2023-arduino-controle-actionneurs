@@ -96,7 +96,6 @@ void setup() {
 		pinMode(UIB_pins[i], INPUT);
 		pinMode(UIL_pins[i], OUTPUT);
 	}
-
 }
 
 
@@ -129,8 +128,17 @@ void loop() {
 					char name[16] = {0};
 					char value[TAILLEBUFFER] = {0};
 					int numparsed = sscanf(&buffer[readstartidx], "%[^:\n]:%[^:\n]\n", name, value);
-					if (numparsed == 2)
+					if (numparsed >= 1)
 					{
+						/*Serial.print("Found command : at ");
+						Serial.print(i);
+						Serial.print(" length ");
+						Serial.print(i-readstartidx);
+						Serial.print(" name \"");
+						Serial.print(name);
+						Serial.print("\" value \"");
+						Serial.print(value);
+						Serial.println("\"");*/
 						traitementDesCommandes(name,value);
 					}
 					readstartidx = i+1;
@@ -189,11 +197,18 @@ void I2CSendRecv(char* svalue, const char* parseformat)
 {
 	Wire.beginTransmission(42);
 	const char* sendformat = parseformat;
-	int index = 0, numread;
+	int index = 0, numread = 0;
 	T value;
 	uint8_t* valueptr = (uint8_t*)&value;
-	while (index < TAILLEBUFFER && sscanf(&svalue[index], sendformat, &value, &numread)==2)
+	int numwords = 0;
+	//Serial.print("send via i2c: ");
+	while (index < TAILLEBUFFER && sscanf(&svalue[index], sendformat, &value, &numread)>=1)
 	{
+		numwords++;
+		/*Serial.print(value);
+		Serial.print(" ");
+		Serial.print(numread);
+		Serial.print("/");*/
 		if (index == 0)
 		{
 			Wire.write((uint8_t)value); //first read : command (as 1 byte)
@@ -219,7 +234,11 @@ void I2CSendRecv(char* svalue, const char* parseformat)
 	}
 endsend:
 	Wire.endTransmission();
-
+	/*Serial.print(" Sent ");
+	Serial.print(numwords);
+	Serial.print(" /receiving ");
+	Serial.print(bitRequestI2C);
+	Serial.println(" words by I2C");*/
 	if(bitRequestI2C!=0){
 		Wire.requestFrom(42, bitRequestI2C);
 		bitRequestI2C = 0;
@@ -230,7 +249,7 @@ endsend:
 			{
 				valueptr[i] = Wire.read();
 			}
-			Serial.print(value);
+			Serial.print(value, DEC);
 			if(Wire.available()){
 				Serial.print(",");
 			}        
@@ -246,6 +265,7 @@ void traitementDesCommandes(char* name,char* svalue){
 	int buiidx;
 	if(sscanf(name,"servo%d", &servoidx) == 1){
 		int ivalue;
+		//Serial.println("command is Servo command");
 		sscanf(svalue, "%d", &ivalue);
 		if (servoidx == 4)
 		{
@@ -268,17 +288,22 @@ void traitementDesCommandes(char* name,char* svalue){
 		return;
 	}
 	if(strcmp(name,"bouton1") == 0){
+		//Serial.println("command is bouton command");
 		Serial.print("bouton1:");
 		Serial.println(!digitalRead(24));
 		return;
 	}
 	if(sscanf(name,"boutonUI%x", &buiidx) == 1){
+		
+		//Serial.println("command is uib command");
 		Serial.print(name);
 		Serial.print(":");
 		Serial.println(digitalRead(UIB_pins[buiidx-1]));
 		return;
 	}
 	if(sscanf(name,"ledUI%x", &luiidx) == 1){
+		
+		//Serial.println("command is uil command");
 		int ivalue;
 		sscanf(svalue, "%d", &ivalue);
 		digitalWrite(UIL_pins[luiidx-1],ivalue);
@@ -289,11 +314,11 @@ void traitementDesCommandes(char* name,char* svalue){
 		return;  
 	}
 	if(strcmp(name,"I2CSend") == 0){
-		I2CSendRecv<uint16_t>(svalue, "%d%n");
+		I2CSendRecv<int16_t>(svalue, "%d%n");
 		return;
 	}
 	if(strcmp(name,"IFS") == 0){
-		I2CSendRecv<float>(svalue, "%f%n");
+		I2CSendRecv<float>(svalue, "%x%n");
 		return;
 	}
 	

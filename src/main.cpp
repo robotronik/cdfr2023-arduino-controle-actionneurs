@@ -44,10 +44,12 @@ void traitementDesCommandes(char* name,char* svalue);
 //*********************************
 // VARAIBLES OBJETS
 //*********************************
-//VARAIBLES
+//VARIABLES
 char buffer[256] = {0};
 unsigned int index = 0;
 int bitRequestI2C;
+
+uint64_t lastKeepalive = 0;
 
 //OBJETS
 AccelStepper stepper1(AccelStepper::DRIVER, STEP_PIN, DIR_PIN);
@@ -164,6 +166,14 @@ void loop() {
 		
 	}
 
+	if (millis() > lastKeepalive +1000)
+	{
+		Serial.print("keepalive:");
+		Serial.println(millis(), HEX);
+		lastKeepalive = millis();
+	}
+	
+
 	for (int i = 0; i < numservos; i++)
 	{
 		servos[i].loop();
@@ -192,47 +202,62 @@ void loop() {
 	// delay(100);  
 }
 
-template<class T>
-void I2CSendRecv(char* svalue, const char* parseformat)
+template<class T, char const *fmt>
+int ScanOne(char* svalue)
 {
-	Wire.beginTransmission(42);
-	const char* sendformat = parseformat;
-	int index = 0, numread = 0;
+	int numread = 0;
 	T value;
 	uint8_t* valueptr = (uint8_t*)&value;
+	int numscanned = sscanf(svalue, fmt, &value, &numread);
+	Serial.print(numscanned);
+	Serial.print(" ");
+	Serial.print(value);
+	Serial.print(" ");
+	Serial.print(numread);
+	Serial.print(" ");
+	if (numscanned <1)
+	{
+		return 0;
+	}
+	
+	for (uint8_t i = 0; i < sizeof(T); i++)
+	{
+		Wire.write(valueptr[i]);
+	}
+	switch (svalue[index])
+	{
+	case ',': //more to transmit
+		return numread+1;
+	
+	default: //error type of zeros
+		return 0;
+	}
+}
+
+const char I2CCommandFmt[] = "%hhd%n";
+
+template<class T, char const *fmt>
+void I2CSendRecv(char* svalue)
+{
+	Wire.beginTransmission(42);
+	int index = 0, numread = 0;
+	numread = ScanOne<uint8_t, I2CCommandFmt>(svalue);
 	int numwords = 0;
+
+	T value;
+	uint8_t* valueptr = (uint8_t*)&value;
 	//Serial.print("send via i2c: ");
-	while (index < TAILLEBUFFER && sscanf(&svalue[index], sendformat, &value, &numread)>=1)
+	while (index < TAILLEBUFFER && numread > 0)
 	{
 		numwords++;
+		index += numread;
+		numread = ScanOne<T, fmt>(&svalue[index]);
 		/*Serial.print(value);
 		Serial.print(" ");
 		Serial.print(numread);
 		Serial.print("/");*/
-		if (index == 0)
-		{
-			Wire.write((uint8_t)value); //first read : command (as 1 byte)
-		}
-		else
-		{
-			for (uint8_t i = 0; i < sizeof(T); i++)
-			{
-				Wire.write(valueptr[i]);
-			}
-		}
-		index += numread;
-		switch (svalue[index])
-		{
-		case ',': //more to transmit
-			index++;
-			break;
-		
-		default: //error type of zeros
-			goto endsend;
-			break;
-		}
 	}
-endsend:
+	Serial.println("");
 	Wire.endTransmission();
 	/*Serial.print(" Sent ");
 	Serial.print(numwords);
@@ -257,6 +282,9 @@ endsend:
 		Serial.println("");
 	}
 }
+
+const char I2CSendFmt[] = "%d%n";
+const char IFSFmt[] = "%x%n";
 
 void traitementDesCommandes(char* name,char* svalue){
 
@@ -314,11 +342,11 @@ void traitementDesCommandes(char* name,char* svalue){
 		return;  
 	}
 	if(strcmp(name,"I2CSend") == 0){
-		I2CSendRecv<int16_t>(svalue, "%d%n");
+		I2CSendRecv<int16_t, I2CSendFmt>(svalue);
 		return;
 	}
-	if(strcmp(name,"IFS") == 0){
-		I2CSendRecv<float>(svalue, "%x%n");
+	if(strcmp(name,"I2CS32") == 0){
+		I2CSendRecv<int32_t, IFSFmt>(svalue);
 		return;
 	}
 	

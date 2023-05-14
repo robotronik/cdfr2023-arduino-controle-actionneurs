@@ -229,7 +229,16 @@ int ScanOne(char* svalue)
 	{
 		Wire.write(valueptr[i]);
 	}
-	return numread+1;
+	switch (svalue[numread])
+	{
+	case ',':
+		return numread+1;
+		break;
+	
+	default:
+		return numread; //force tripping next cycle
+		break;
+	}
 }
 
 const char I2CCommandFmt[] = "%hhd%n";

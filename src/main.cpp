@@ -45,7 +45,7 @@ void traitementDesCommandes(char* name,char* svalue);
 // VARAIBLES OBJETS
 //*********************************
 //VARIABLES
-char buffer[256] = {0};
+char buffer[TAILLEBUFFER] = {0};
 unsigned int index = 0;
 int bitRequestI2C;
 
@@ -116,7 +116,7 @@ void loop() {
 		int numread = Serial.readBytes(&buffer[index], numtoread);
 		
 		index += numread;
-		int readstartidx = 0;
+		unsigned int readstartidx = 0;
 		buffer[index] = '\0';
 		for (unsigned int i = 0; i < index; i++)
 		{
@@ -127,6 +127,11 @@ void loop() {
 				break;
 			case '\n': //process the command
 				{
+					if (readstartidx == i)
+					{
+						break;
+					}
+					
 					char name[16] = {0};
 					char value[TAILLEBUFFER] = {0};
 					int numparsed = sscanf(&buffer[readstartidx], "%[^:\n]:%[^:\n]\n", name, value);
@@ -166,7 +171,7 @@ void loop() {
 		
 	}
 
-	if (millis() > lastKeepalive +1000)
+	if (millis() >= lastKeepalive +1000)
 	{
 		Serial.print("keepalive:");
 		Serial.println(millis(), HEX);
@@ -209,12 +214,12 @@ int ScanOne(char* svalue)
 	T value;
 	uint8_t* valueptr = (uint8_t*)&value;
 	int numscanned = sscanf(svalue, fmt, &value, &numread);
-	Serial.print(numscanned);
+	/*Serial.print(numscanned);
 	Serial.print(" ");
 	Serial.print(value);
 	Serial.print(" ");
 	Serial.print(numread);
-	Serial.print(" ");
+	Serial.print(" ");*/
 	if (numscanned <1)
 	{
 		return 0;
@@ -224,14 +229,7 @@ int ScanOne(char* svalue)
 	{
 		Wire.write(valueptr[i]);
 	}
-	switch (svalue[index])
-	{
-	case ',': //more to transmit
-		return numread+1;
-	
-	default: //error type of zeros
-		return 0;
-	}
+	return numread+1;
 }
 
 const char I2CCommandFmt[] = "%hhd%n";
@@ -241,12 +239,12 @@ void I2CSendRecv(char* svalue)
 {
 	Wire.beginTransmission(42);
 	int index = 0, numread = 0;
+	//Serial.print("send via i2c: ");
 	numread = ScanOne<uint8_t, I2CCommandFmt>(svalue);
 	int numwords = 0;
 
 	T value;
 	uint8_t* valueptr = (uint8_t*)&value;
-	//Serial.print("send via i2c: ");
 	while (index < TAILLEBUFFER && numread > 0)
 	{
 		numwords++;
@@ -257,7 +255,7 @@ void I2CSendRecv(char* svalue)
 		Serial.print(numread);
 		Serial.print("/");*/
 	}
-	Serial.println("");
+	//Serial.println("");
 	Wire.endTransmission();
 	/*Serial.print(" Sent ");
 	Serial.print(numwords);
@@ -284,7 +282,7 @@ void I2CSendRecv(char* svalue)
 }
 
 const char I2CSendFmt[] = "%d%n";
-const char IFSFmt[] = "%x%n";
+const char IFSFmt[] = "%lx%n";
 
 void traitementDesCommandes(char* name,char* svalue){
 

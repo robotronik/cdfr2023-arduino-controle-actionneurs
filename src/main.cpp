@@ -28,6 +28,23 @@
 #define MAX_PULSE_WIDTH 2000
 #define ARM_DELAY 2000
 
+// Configuration Servomoteur porte Aspiration
+#define PINASPIRATION 3
+
+// Configuration des étagères
+#define PINETAGEREBAS 6
+#define PINETAGEREMILIEU 7
+#define PINETAGEREHAUT 8
+
+// Configuration de la pince 
+#define PINPINCE 5
+
+// Configuration du module Bluetooth
+#define PINBT_TX NULL
+#define PINBT_RX NULL
+#define PINKEY NULL
+#define PINSTATE NULL
+
 
 #define PINMOTEUR A7
 
@@ -86,14 +103,22 @@ void setup() {
 	digitalWrite(20, LOW);
 	Wire.setTimeout(1000);
 
+	// Configuration ESC
+	initESC();
+
 	//Configuration Servo
-	servos[0].setup(2);
-	servos[1].setup(3);
-	servos[2].setup(4,180);
-	servos[3].setup(5,0);
-	servos[4].setup(6,180,5,0.3);
-	servos[5].setup(7,180,5,0.3);
-	servos[6].setup(8,180,5,0.3);
+	servos[0].setup(2); 		// Non assigné
+	servos[1].setup(PINASPIRATION); 		// Porte d'aspiration
+	servos[2].setup(4,180); 	// N'existe pas
+	servos[3].setup(PINPINCE,0); 		// Position de la pince
+	servos[4].setup(PINETAGEREBAS,180,5,0.3); // étagère du bas
+	servos[5].setup(PINETAGEREMILIEU,180,5,0.3); // étagère du milieu
+	servos[6].setup(PINETAGEREHAUT,180,5,0.3); // étagère du haut
+
+
+	/* Définitions des servos de 0 à 7 :
+	Servo 0 : 
+	*/
 
 	pinMode(PINMOTEUR,OUTPUT);
 	digitalWrite(PINMOTEUR,0);
@@ -344,6 +369,14 @@ void traitementDesCommandes(char* name,char* svalue){
 	}
 	if(strcmp(name,"escdisarm") == 0){
 		disarmESC();
+		return;
+	}
+	if(strcmp(name,"opendoor")){
+		servos[7].setpos(180);
+		return;
+	}
+	if(strcmp(name,"closedoor")){
+		servos[7].setpos(0);
 		return;
 	}
 	if(strcmp(name,"bouton1") == 0){

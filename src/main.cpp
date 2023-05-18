@@ -371,12 +371,17 @@ void traitementDesCommandes(char* name,char* svalue){
 		disarmESC();
 		return;
 	}
+	if(strcmp(name,"escstop") == 0){
+		runESC(0);
+		return;
+	}
 	if(strcmp(name,"opendoor")){
-		servos[7].setpos(180);
+		// Pin Servo 7
+		servos[1].setpos(180);
 		return;
 	}
 	if(strcmp(name,"closedoor")){
-		servos[7].setpos(0);
+		servos[1].setpos(0);
 		return;
 	}
 	if(strcmp(name,"bouton1") == 0){

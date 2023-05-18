@@ -52,6 +52,10 @@
 #define SCREEN_WIDTH 128
 #define SCREEN_HEIGHT 64
 
+//communication BT
+#define statePin 2
+#define keyPin 5
+#define hc05BR 38400
 
 #define PINMOTEUR A7
 
@@ -79,9 +83,13 @@ void traitementDesCommandes(char* name,char* svalue);
 char buffer[TAILLEBUFFER] = {0};
 unsigned int index = 0;
 int bitRequestI2C;
-
-SSD1306AsciiAvrI2c oled;
-
+int score;
+int score_affiche;
+int score_recu=0;
+int score_panier;
+//addresses BT des modules BT utilisés :
+//Robot: 98d3:11:fcc42f
+//Panier: 98D3,41,F62269
 
 
 uint64_t lastKeepalive = 0;
@@ -91,6 +99,7 @@ AccelStepper stepper1(AccelStepper::DRIVER, STEP_PIN, DIR_PIN);
 servoControl servos[7];
 const int numservos = sizeof(servos)/sizeof(servos[0]);
 Servo esc;
+SSD1306AsciiAvrI2c oled;
 
 
 //*********************************
@@ -155,6 +164,14 @@ void setup() {
 		pinMode(UIB_pins[i], INPUT);
 		pinMode(UIL_pins[i], OUTPUT);
 	}
+	//ecran oled pour l'affichage des points
+	oled.begin(&Adafruit128x64, I2C_ADDRESS);
+	oled.setFont(System5x7);
+	oled.clear();
+	oled.set1X();
+	//modules BT
+	pinMode(keyPin, OUTPUT);
+	digitalWrite(keyPin, LOW); // Mode AT  
 }
 
 
@@ -242,7 +259,23 @@ void loop() {
 	}
 
 	stepper1.run();
-
+	//vu qu'écrire sur l'écran créé une fuite mémoire, on eessaye d'y écrire le moins de fois possible, 
+	//pour cela, on attend la fin du match avant d'envoyer le score à l'arduino qui se charge d'afficher le score total (stratégie + panier)
+	//l'arduino fait des requêtes aux panier afin de récupérer le score gagné grâce au panier
+	if (score_recu == 1){
+ 		if (Serial1.available()) 
+ 		{
+			//delay(100);
+ 			score_panier = Serial1.read();
+			Serial1.flush();	
+ 		}
+		score = score_recu + score_panier;
+		if (score_affiche != score){
+			oled.clear();
+			oled.print(score);
+			score_affiche = score;
+		}
+	}
 	// Serial.println("ok1");
 	// if(1){
 	//   Wire.beginTransmission(42);
@@ -355,6 +388,13 @@ void traitementDesCommandes(char* name,char* svalue){
 	int servoidx;
 	int luiidx;
 	int buiidx;
+	if(strcmp(name,"setscore:")==0){
+		int ivalue;
+		sscanf(svalue, "%d", &ivalue);
+		score = ivalue;
+		score_recu = 1; //vu qu'écrire sur l'écran créé une fuite mémoire, on eessaye d'y écrire le moins de fois possible, 
+		//pour cela, on attend la fin du match avant d'envoyer le score à l'arduino qui se charge d'afficher le score total (stratégie + panier)
+	}
 	if(sscanf(name,"servo%d", &servoidx) == 1){
 		int ivalue;
 		//Serial.println("command is Servo command");

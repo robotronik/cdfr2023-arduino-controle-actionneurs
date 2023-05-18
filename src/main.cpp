@@ -4,6 +4,7 @@
 #include <Arduino.h>
 #include <string.h>
 #include <Wire.h>
+#include <Servo.h>
 
 
 //*********************************
@@ -20,6 +21,12 @@
 #define STEPS_PER_REV 200  // Nombre de pas pour une révolution complète
 #define MAX_SPEED 1000  // Vitesse maximale (en pas par seconde)
 #define MAX_ACCEL 2000 // Accélération maximale (en pas par seconde carré)
+
+// Configuration de l'ESC
+#define PINESC 9
+#define MIN_PULSE_WIDTH 1000
+#define MAX_PULSE_WIDTH 2000
+#define ARM_DELAY 2000
 
 
 #define PINMOTEUR A7
@@ -49,12 +56,15 @@ char buffer[TAILLEBUFFER] = {0};
 unsigned int index = 0;
 int bitRequestI2C;
 
+
+
 uint64_t lastKeepalive = 0;
 
 //OBJETS
 AccelStepper stepper1(AccelStepper::DRIVER, STEP_PIN, DIR_PIN);
 servoControl servos[7];
 const int numservos = sizeof(servos)/sizeof(servos[0]);
+Servo esc;
 
 
 //*********************************
@@ -322,6 +332,20 @@ void traitementDesCommandes(char* name,char* svalue){
 		digitalWrite(PINMOTEUR,ivalue);
 		return;
 	}
+	if(strcmp(name,"escspeed") == 0){
+		int ivalue;
+		sscanf(svalue, "%d", &ivalue);
+		runESC(ivalue);
+		return;
+	}
+	if(strcmp(name,"escinit") == 0){
+		initESC();
+		return;
+	}
+	if(strcmp(name,"escdisarm") == 0){
+		disarmESC();
+		return;
+	}
 	if(strcmp(name,"bouton1") == 0){
 		//Serial.println("command is bouton command");
 		Serial.print("bouton1:");
@@ -385,3 +409,26 @@ void traitementDesCommandes(char* name,char* svalue){
 	
 }
 
+// Initiaisation de l'ESC
+ void initESC(){
+
+  esc.attach(PINESC, MIN_PULSE_WIDTH, MAX_PULSE_WIDTH);
+  esc.writeMicroseconds(MIN_PULSE_WIDTH);
+  delay(ARM_DELAY);
+ }
+
+  //Désarmement de l'ESC
+  void disarmESC(){
+    esc.detach();
+  }
+
+  //Fonction pour faire tourner l'ESC
+  void runESC(int percentage){
+
+    percentage = constrain(percentage, 0, 100);
+
+    int pulseWidth = map(percentage, 0, 100, MIN_PULSE_WIDTH, MAX_PULSE_WIDTH);
+
+    esc.writeMicroseconds(pulseWidth);
+  
+  }

@@ -5,6 +5,8 @@
 #include <string.h>
 #include <Wire.h>
 #include <Servo.h>
+#include <SSD1306Ascii.h>
+#include <SSD1306AsciiAvrI2c.h>
 
 
 //*********************************
@@ -45,6 +47,11 @@
 #define PINKEY NULL
 #define PINSTATE NULL
 
+// Configuration écran I2C
+#define I2C_ADDRESS 0x3C
+#define SCREEN_WIDTH 128
+#define SCREEN_HEIGHT 64
+
 
 #define PINMOTEUR A7
 
@@ -73,6 +80,8 @@ char buffer[TAILLEBUFFER] = {0};
 unsigned int index = 0;
 int bitRequestI2C;
 
+SSD1306AsciiAvrI2c oled;
+
 
 
 uint64_t lastKeepalive = 0;
@@ -96,15 +105,28 @@ void setup() {
 
 	// Configuration Serial
 	Serial.begin(115200);
+
+	// Configuration I2C
 	Wire.begin(100);
-	pinMode(20, INPUT);
-	pinMode(21, INPUT);
+	
+
+
+	// Configuration Broches de la platine
+	pinMode(20, INPUT); // Bouton 1 
+	pinMode(21, INPUT); // Bouton 2
 	digitalWrite(21, LOW);
 	digitalWrite(20, LOW);
 	Wire.setTimeout(1000);
 
+
 	// Configuration ESC
 	initESC();
+
+	// Configuration Bluetooth
+	initBluetooth();
+
+	// Configuration LCD
+	initLCD();
 
 	//Configuration Servo
 	servos[0].setup(2); 		// Non assigné
@@ -363,24 +385,35 @@ void traitementDesCommandes(char* name,char* svalue){
 		runESC(ivalue);
 		return;
 	}
-	if(strcmp(name,"escinit") == 0){
+	if(strcmp(name,"escinit") == 0){ // Initialise l'ESC
 		initESC();
 		return;
 	}
-	if(strcmp(name,"escdisarm") == 0){
+	if(strcmp(name,"escdisarm") == 0){ // Désarme l'ESC
 		disarmESC();
 		return;
 	}
-	if(strcmp(name,"escstop") == 0){
+	if(strcmp(name,"escstop") == 0){ // Stoppe l'ESC
 		runESC(0);
 		return;
 	}
-	if(strcmp(name,"opendoor")){
+	if(strcmp(name,"getcerisenumber") == 0){ // Retourne le nombre de cerise à la Lattepanda
+		int nbCerise = getNbCerise();
+		Serial.print("nbCerise:");
+		Serial.println(nbCerise);
+		return;
+	}
+	if(strcmp(name,"setscore") == 0){ 
+		int ivalue;
+		sscanf(svalue, "%d", &ivalue);
+		printLCD(ivalue);
+	}
+	if(strcmp(name,"opendoor")){ // Ouvre la porte d'aspiration
 		// Pin Servo 7
 		servos[1].setpos(180);
 		return;
 	}
-	if(strcmp(name,"closedoor")){
+	if(strcmp(name,"closedoor")){ // Ferme la porte d'aspiration
 		servos[1].setpos(0);
 		return;
 	}
@@ -469,4 +502,39 @@ void traitementDesCommandes(char* name,char* svalue){
 
     esc.writeMicroseconds(pulseWidth);
   
+  }
+
+  // Fonction pour demander le nombre de cerise
+  int getNbCerise(){
+	if(digitalRead(PINSTATE) && Serial1.available()){
+	  sendRequestCerise();
+	  return Serial1.read();
+	}else{
+		return -1;
+	}
+  }
+
+  void sendRequestCerise(){
+	Serial1.write('s');
+  }
+
+
+  void initLCD(){
+	oled.begin(&Adafruit128x64, I2C_ADDRESS);
+	oled.setFont(System5x7);
+	oled.clear();
+	oled.set1X();
+
+  }
+
+  void initBluetooth(){
+	pinMode(PINKEY, OUTPUT);
+	pinMode(PINSTATE, INPUT);
+	digitalWrite(PINKEY, LOW);
+	// digitalWrite(PINSTATE, HIGH);
+  }
+
+  void printLCD(int nbr){
+	oled.clear();
+	oled.println(nbr);
   }

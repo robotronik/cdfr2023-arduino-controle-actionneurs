@@ -20,9 +20,7 @@
 #define STEP_PIN 12
 
 // Configuration du moteur pas à pas
-#define STEPS_PER_REV 200  // Nombre de pas pour une révolution complète
-#define MAX_SPEED 1000  // Vitesse maximale (en pas par seconde)
-#define MAX_ACCEL 2000 // Accélération maximale (en pas par seconde carré)
+#define STEPS_PER_REV 200  // Nombre de pas pour une révolution BAS
 
 // Configuration de l'ESC
 #define PINESC 9
@@ -31,15 +29,17 @@
 #define ARM_DELAY 2000
 
 // Configuration Servomoteur porte Aspiration
-#define PINASPIRATION 3
+#define PINESC 3
+#define PINASPIRATION 2
 
 // Configuration des étagères
 #define PINETAGEREBAS 6
-#define PINETAGEREMILIEU 7
-#define PINETAGEREHAUT 8
+#define PINETAGEREMILIEU 5
+#define PINETAGEREHAUT 4
 
 // Configuration de la pince 
-#define PINPINCE 5
+#define PINPINCEG 7
+#define PINPINCED 8 
 
 // Configuration du module Bluetooth
 #define PINBT_TX NULL
@@ -138,13 +138,14 @@ void setup() {
 	initLCD();
 
 	//Configuration Servo
-	servos[0].setup(2); 		// Non assigné
+	servos[0].setup(NULL); 		// non assigné
 	servos[1].setup(PINASPIRATION); 		// Porte d'aspiration
-	servos[2].setup(4,180); 	// N'existe pas
-	servos[3].setup(PINPINCE,0); 		// Position de la pince
+	servos[2].setup(PINPINCED,0); 	// Position pince droite
+	servos[3].setup(PINPINCEG,0); 		// Position de la pince gauche
 	servos[4].setup(PINETAGEREBAS,180,5,0.3); // étagère du bas
 	servos[5].setup(PINETAGEREMILIEU,180,5,0.3); // étagère du milieu
 	servos[6].setup(PINETAGEREHAUT,180,5,0.3); // étagère du haut
+
 
 
 	/* Définitions des servos de 0 à 7 :
@@ -571,7 +572,7 @@ void traitementDesCommandes(char* name,char* svalue){
 	pinMode(PINKEY, OUTPUT);
 	pinMode(PINSTATE, INPUT);
 	digitalWrite(PINKEY, LOW);
-	// digitalWrite(PINSTATE, HIGH);
+	while(digitalRead(PINSTATE)==0){};
   }
 
   void printLCD(int nbr){

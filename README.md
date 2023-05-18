@@ -12,7 +12,7 @@
 | !servo6:x\n | x = position en degrès (rentré = 180, déployé = 0)| étagère du milieu |
 | !servo5:x\n | x = position en degrès (rentré = 180, déployé = 0) | étagère du bas |
 | !servo4:x\n | x = position en degrès (ouverte = 0, fermé = 140) | postion de la pince |
-| !servo3:x\n |  | N'existe pas |
+| !servo3:x\n |  | = position en degrès (ouverte = 0, fermé = 140)| position pince droit (mirroir)
 | !servo2:x\n |  | Non assigné |
 | !servo1:x\n |  | Non assigné |
 | !stepper1:x\n |  x = postion en nb de steps (bas = 0, haut = 750) | Ascenseur |

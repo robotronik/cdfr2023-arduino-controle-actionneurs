@@ -444,11 +444,6 @@ void traitementDesCommandes(char* name,char* svalue){
 		Serial.println(nbCerise);
 		return;
 	}
-	if(strcmp(name,"setscore") == 0){ 
-		int ivalue;
-		sscanf(svalue, "%d", &ivalue);
-		printLCD(ivalue);
-	}
 	if(strcmp(name,"opendoor")){ // Ouvre la porte d'aspiration
 		// Pin Servo 7
 		servos[1].setpos(180);

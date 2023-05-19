@@ -32,8 +32,8 @@
 #define ARM_DELAY 2000
 
 // Configuration Servomoteur porte Aspiration
-#define PINESC 3
-#define PINASPIRATION 2
+#define PINESC 2
+#define PINASPIRATION 3
 
 // Configuration des étagères
 #define PINETAGEREBAS 6
@@ -78,6 +78,14 @@ const char UIL_pins[] = {LED_IU_4, LED_IU_3, LED_IU_2, LED_IU_1};
 // FONCTIONS
 //*********************************
 void traitementDesCommandes(char* name,char* svalue);
+void initESC();
+void disarmESC();
+void runESC(int percentage);
+int getNbCerise();
+void sendRequestCerise();
+void initLCD();
+void initBluetooth();
+void printLCD(int nbr);
 
 //*********************************
 // VARAIBLES OBJETS
@@ -142,13 +150,14 @@ void setup() {
 
 	//Configuration Servo
 	servos[0].setup(NULL); 		// non assigné
-	servos[1].setup(PINASPIRATION); 		// Porte d'aspiration
-	servos[2].setup(PINPINCED,0); 	// Position pince droite
-	servos[3].setup(PINPINCEG,0); 		// Position de la pince gauche
-	servos[4].setup(PINETAGEREBAS,180,5,0.3); // étagère du bas
-	servos[5].setup(PINETAGEREMILIEU,180,5,0.3); // étagère du milieu
-	servos[6].setup(PINETAGEREHAUT,180,5,0.3); // étagère du haut
+	servos[1].setup(PINASPIRATION); 		// Porte d'aspiration PIN 2
+	servos[2].setup(PINPINCED,0); 			// Position pince droite PIN 8
+	servos[3].setup(PINPINCEG,0); 			// Position de la pince gauche PIN 7
+	servos[4].setup(PINETAGEREBAS,180,5,0.3); 		// étagère du bas PIN 6
+	servos[5].setup(PINETAGEREMILIEU,180,5,0.3); 	// étagère du milieu PIN 5
+	servos[6].setup(PINETAGEREHAUT,180,5,0.3); 		// étagère du haut PIN 4
 
+	servos[5].loop(); //on force la mise à jour de la position du servo (sinon il ne bouge pas de sa position par défaut)
 
 
 	/* Définitions des servos de 0 à 7 :
@@ -168,14 +177,6 @@ void setup() {
 		pinMode(UIB_pins[i], INPUT);
 		pinMode(UIL_pins[i], OUTPUT);
 	}
-	//ecran oled pour l'affichage des points
-	oled.begin(&Adafruit128x64, I2C_ADDRESS);
-	oled.setFont(System5x7);
-	oled.clear();
-	oled.set1X();
-	//modules BT
-	pinMode(keyPin, OUTPUT);
-	digitalWrite(keyPin, LOW); // Mode AT  
 }
 
 
@@ -409,6 +410,7 @@ void traitementDesCommandes(char* name,char* svalue){
 		}
 		servoidx--;
 		servos[servoidx].setpos(ivalue);
+		servos[servoidx].loop();
 		return;
 	}
 	else if(strcmp(name,"stepper1") == 0){

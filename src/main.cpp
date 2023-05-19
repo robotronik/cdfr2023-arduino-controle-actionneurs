@@ -20,6 +20,9 @@
 #define STEP_PIN 12
 
 // Configuration du moteur pas à pas
+#define STEPS_PER_REV 200  // Nombre de pas pour une révolution complète
+#define MAX_SPEED 1000  // Vitesse maximale (en pas par seconde)
+#define MAX_ACCEL 2000 // Accélération maximale (en pas par seconde carré)
 #define STEPS_PER_REV 200  // Nombre de pas pour une révolution BAS
 
 // Configuration de l'ESC

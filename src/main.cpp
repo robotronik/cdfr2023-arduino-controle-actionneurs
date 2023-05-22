@@ -32,10 +32,14 @@
 #define BOUTON_IU_4 48
 #define BOUTON_IU_1 46
 
+#define PINKEY 40
+#define PINSTATE 38
+
 //*********************************
 // FONCTIONS
 //*********************************
 void traitementDesCommandes(char* name,char* svalue);
+void fin(void);
 
 //*********************************
 // VARAIBLES OBJETS
@@ -46,6 +50,10 @@ unsigned long delayTemp2 = millis()+0;
 char buffer[256] = {0};
 int index = 0;
 int bitRequestI2C;
+unsigned long timeFin = 999999999;
+int score;
+int score_recu;
+int score_panier;
 
 //OBJETS
 AccelStepper stepper1(AccelStepper::DRIVER, STEP_PIN, DIR_PIN);
@@ -82,9 +90,9 @@ void setup() {
   servo2.setup(3);
   servo3.setup(4,180);
   servo4.setup(5,0);
-  servo5.setup(6,180,5,0.3);
-  servo6.setup(7,180,5,0.3);
-  servo7.setup(8,180,5,0.3);
+  servo5.setup(6,180,2.5,0.15);
+  servo6.setup(7,180,2.5,0.15);
+  servo7.setup(8,180,2.5,0.15);
 
   pinMode(PINMOTEUR,OUTPUT);
   digitalWrite(PINMOTEUR,0);
@@ -102,6 +110,7 @@ void setup() {
   pinMode(LED_IU_2, OUTPUT);
   pinMode(LED_IU_3, OUTPUT);
   pinMode(LED_IU_4, OUTPUT);
+
 
 }
 
@@ -127,6 +136,9 @@ void loop() {
     }  
   }
 
+  if(timeFin < millis()){
+    fin();
+  }
 
   servo1.loop();
   servo2.loop();
@@ -136,6 +148,10 @@ void loop() {
   servo6.loop();
   servo7.loop();
   stepper1.run();
+
+  if (score_recu == 1){
+    Serial1.write(score);
+  }
 
   // Serial.println("ok1");
   // if(1){
@@ -158,7 +174,17 @@ void loop() {
   // delay(100);  
 }
 
+void fin(void){
+  Wire.beginTransmission(42); // transmit to device #42
+  Wire.write(32);
+  Wire.endTransmission();         // stop transmitting
+  while (1);
+}
+
 void traitementDesCommandes(char* name,char* svalue){
+  if(strcmp(name,"start") == 0){
+    timeFin = millis()+100000;
+  }
   if(strcmp(name,"servo1") == 0){
     int ivalue;
     sscanf(svalue, "%d", &ivalue);
@@ -258,6 +284,12 @@ void traitementDesCommandes(char* name,char* svalue){
   }
   if(strcmp(name,"I2CRequest") == 0){
     sscanf(svalue, "%d", &bitRequestI2C);    
+  }
+  if (strcmp(name, "setscore:") == 0){
+    int ivalue;
+    sscanf(svalue, "%d", &ivalue);
+    score = ivalue;
+    score_recu = 1;
   }
   if(strcmp(name,"I2CSend") == 0){
     int16_t ivalue;
